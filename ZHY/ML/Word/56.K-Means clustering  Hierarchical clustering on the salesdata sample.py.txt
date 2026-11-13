@@ -1,0 +1,248 @@
+Practical 5 Sales
+
+import pandas as pd 
+import numpy as np 
+import matplotlib.pyplot as plt 
+import seaborn as sns
+
+
+df = pd.read_csv("sales_data_sample.csv", encoding="latin1")
+
+
+df.head()
+
+
+df.tail()
+
+
+df.shape
+
+
+df.shape[0]
+
+
+df.columns
+
+
+df.dtypes
+
+
+df.info()
+
+
+df.describe()
+
+
+df.isnull().sum()
+
+
+df.isnull().sum().sum()
+
+
+df.isnull().mean() * 100
+
+
+df = df.dropna()
+
+
+df = df.fillna(df.select_dtypes(include=np.number).mean())
+
+
+df.duplicated().sum()
+
+
+df = df.drop_duplicates()
+
+
+df.select_dtypes(include='object').columns
+
+
+df.select_dtypes(include=np.number).columns
+
+
+df.select_dtypes(include='object').shape[1]
+
+
+df.select_dtypes(include=np.number).shape[1]
+
+
+X = df[['QUANTITYORDERED', 'PRICEEACH', 'SALES']]
+
+
+X.head()
+
+
+X.shape
+
+
+X.describe()
+
+
+X.hist(figsize=(10, 5)) 
+plt.show()
+
+
+X.boxplot(figsize=(10, 5)) 
+plt.show()
+
+
+X.corr()
+
+
+sns.heatmap(X.corr(), annot=True) 
+plt.show()
+
+
+from sklearn.preprocessing import StandardScaler
+
+
+scaler = StandardScaler()
+
+
+X_scaled = scaler.fit_transform(X)
+
+
+X_scaled[:5]
+
+
+from sklearn.cluster import KMeans
+
+
+inertia = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, random_state=42, n_init=10)
+    kmeans.fit(X_scaled)
+    inertia.append(kmeans.inertia_)
+print(inertia)
+
+
+plt.figure(figsize=(8, 5)) 
+plt.plot(range(1, 11), inertia, marker='o') 
+plt.xlabel('Number of Clusters') 
+plt.ylabel('Inertia') 
+plt.title('Elbow Method') 
+plt.show()
+
+
+kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+
+
+clusters = kmeans.fit_predict(X_scaled)
+
+
+print(clusters)
+
+
+df.head()
+
+# Create K-Means model
+from sklearn.cluster import KMeans
+kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+# Fit model and predict clusters
+clusters = kmeans.fit_predict(X_scaled)
+# Add cluster results to DataFrame
+df['Cluster'] = clusters
+# Display cluster counts
+df['Cluster'].value_counts()
+
+
+kmeans.cluster_centers_
+
+
+print(kmeans.cluster_centers_)
+
+
+centers = scaler.inverse_transform(kmeans.cluster_centers_) 
+print(centers)
+
+
+print("Inertia:", kmeans.inertia_)
+
+
+plt.figure(figsize=(8, 5)) 
+plt.scatter(
+    X_scaled[:, 0],
+    X_scaled[:, 1],
+    c=clusters 
+) 
+plt.xlabel('Quantity Ordered') 
+plt.ylabel('Price Each') 
+plt.title('K-Means Clustering') 
+plt.show()
+
+
+plt.figure(figsize=(8, 5)) 
+plt.scatter(
+    df['QUANTITYORDERED'],
+    df['SALES'],
+    c=df['Cluster']
+ ) 
+plt.xlabel('Quantity Ordered') 
+plt.ylabel('Sales') 
+plt.title('Sales Data K-Means Clustering')
+plt.show()
+
+
+df.groupby('Cluster')[['QUANTITYORDERED', 'PRICEEACH', 'SALES']].mean()
+
+
+df.groupby('Cluster').size()
+
+
+from scipy.cluster.hierarchy import dendrogram, linkage
+
+
+linked = linkage(X_scaled, method='ward')
+
+
+plt.figure(figsize=(10, 6)) 
+dendrogram(linked) 
+plt.title('Hierarchical Clustering Dendrogram') 
+plt.xlabel('Data Points') 
+plt.ylabel('Distance')
+plt.show()
+
+
+from sklearn.cluster import AgglomerativeClustering
+
+
+hc = AgglomerativeClustering(
+     n_clusters=3,
+     linkage='ward'
+ )
+
+
+hc_clusters = hc.fit_predict(X_scaled)
+
+
+print(hc_clusters)
+
+
+df['Hierarchical_Cluster'] = hc_clusters
+
+
+df.head()
+
+
+df['Hierarchical_Cluster'].value_counts()
+
+
+plt.figure(figsize=(8, 5))
+plt.scatter(
+    X_scaled[:, 0],
+    X_scaled[:, 1],
+    c=hc_clusters 
+) 
+plt.xlabel('Quantity Ordered') 
+plt.ylabel('Price Each') 
+plt.title('Hierarchical Clustering') 
+plt.show()
+
+
+print("K-Means Clusters:") 
+print(df['Cluster'].value_counts()) 
+print("\nHierarchical Clusters:") 
+print(df['Hierarchical_Cluster'].value_counts())
+
+
+df.to_csv("sales_clustered.csv", index=False)

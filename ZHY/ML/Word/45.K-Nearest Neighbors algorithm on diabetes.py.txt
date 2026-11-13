@@ -1,0 +1,163 @@
+Practical 4 DIABETES
+
+
+import pandas as pd 
+import numpy as np 
+import matplotlib.pyplot as plt 
+import seaborn as sns
+
+
+from sklearn.model_selection import train_test_split 
+from sklearn.preprocessing import StandardScaler 
+from sklearn.neighbors import KNeighborsClassifier 
+from sklearn.metrics import confusion_matrix 
+from sklearn.metrics import accuracy_score 
+from sklearn.metrics import precision_score 
+from sklearn.metrics import recall_score
+
+
+df = pd.read_csv("diabetes.csv")
+
+
+print("First 5 rows:") 
+print(df.head())
+
+
+print("\nShape:") 
+print(df.shape)
+
+
+print("\nMissing values:") 
+print(df.isnull().sum())
+
+
+print("\nStatistics:") 
+print(df.describe())
+
+
+X = df.drop("Outcome", axis=1) 
+y = df["Outcome"]
+
+
+X_train, X_test, y_train, y_test = train_test_split(
+   X, y, 
+   test_size=0.2, 
+   random_state=42 
+) 
+scaler = StandardScaler()
+
+
+X_train = scaler.fit_transform(X_train) 
+X_test = scaler.transform(X_test)
+
+
+knn = KNeighborsClassifier(n_neighbors=5)
+
+
+knn.fit(X_train, y_train)
+
+
+knn.fit(X_train, y_train)
+
+
+y_pred = knn.predict(X_test)
+
+
+print(y_pred)
+
+
+print(y_test.values)
+
+
+cm = confusion_matrix(y_test, y_pred) 
+print(cm)
+
+
+TN, FP, FN, TP = cm.ravel()
+
+
+print("True Negative:", TN) 
+print("False Positive:", FP) 
+print("False Negative:", FN) 
+print("True Positive:", TP)
+
+
+TN, FP, FN, TP = cm.ravel()
+
+
+accuracy = accuracy_score(y_test, y_pred) 
+print("Accuracy:", accuracy)
+
+
+accuracy = (TP + TN) / (TP + TN + FP + FN) 
+print("Accuracy:", accuracy)
+
+
+error_rate = (FP + FN) / (TP + TN + FP + FN) 
+print("Error Rate:", error_rate)
+
+
+precision = precision_score(y_test, y_pred) 
+print("Precision:", precision)
+
+
+precision = TP / (TP + FP) 
+print("Precision:", precision)
+
+
+recall = recall_score(y_test, y_pred) 
+print("Recall:", recall)
+
+
+recall = TP / (TP + FN) 
+print("Recall:", recall)
+
+
+sns.heatmap(cm, annot=True, fmt="d") 
+plt.xlabel("Predicted") 
+plt.ylabel("Actual") 
+plt.title("Confusion Matrix") 
+plt.show()
+
+
+from sklearn.metrics import classification_report 
+print(classification_report(y_test, y_pred))
+
+
+knn1 = KNeighborsClassifier(n_neighbors=3) 
+knn1.fit(X_train, y_train) 
+y_pred1 = knn1.predict(X_test)
+print("Accuracy for K=3:",
+      accuracy_score(y_test, y_pred1))
+
+
+knn5 = KNeighborsClassifier(n_neighbors=5) 
+knn5.fit(X_train, y_train) 
+y_pred5 = knn5.predict(X_test) 
+print("Accuracy for K=5:",
+      accuracy_score(y_test, y_pred5))
+
+
+knn7 = KNeighborsClassifier(n_neighbors=7) 
+knn7.fit(X_train, y_train) 
+y_pred7 = knn7.predict(X_test) 
+print("Accuracy for K=7:",
+      accuracy_score(y_test, y_pred7))
+
+
+accuracy_values = [] 
+for k in range(1, 11):
+    knn = KNeighborsClassifier(n_neighbors=k)
+    knn.fit(X_train, y_train)
+    y_pred_k = knn.predict(X_test)
+    accuracy_values.append(
+        accuracy_score(y_test, y_pred_k)
+    ) 
+print(accuracy_values)
+
+
+plt.plot(range(1, 11), accuracy_values, marker="o") 
+plt.xlabel("K Value") 
+plt.ylabel("Accuracy") 
+plt.title("KNN Accuracy for Different K Values") 
+plt.show()

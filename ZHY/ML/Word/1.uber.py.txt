@@ -1,0 +1,245 @@
+ML Practical 1 
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from math import radians, sin, cos, sqrt, atan2
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
+df = pd.read_csv("uber.csv")
+print(df.head())
+
+print(df.shape)
+
+print(df.info())
+
+print(df.info())
+
+df = df.drop(columns=['Unnamed: 0', 'key'], errors='ignore')
+print(df.head())
+
+print(df.isnull().sum())
+
+df = df.dropna()
+print("Missing values removed")
+print(df.isnull().sum())
+
+df['pickup_datetime'] = pd.to_datetime(
+    df['pickup_datetime'],
+    errors='coerce',
+    utc=True
+)
+df = df.dropna(subset=['pickup_datetime'])
+print(df['pickup_datetime'].dtype)
+
+
+df['hour'] = df['pickup_datetime'].dt.hour
+df['day'] = df['pickup_datetime'].dt.day
+df['month'] = df['pickup_datetime'].dt.month
+df['year'] = df['pickup_datetime'].dt.year
+df['dayofweek'] = df['pickup_datetime'].dt.dayofweek
+print(df.head())
+
+df = df[
+    (df['pickup_latitude'].between(-90, 90)) &
+    (df['dropoff_latitude'].between(-90, 90)) &
+    (df['pickup_longitude'].between(-180, 180)) &
+    (df['dropoff_longitude'].between(-180, 180))
+]
+print("Invalid coordinates removed")
+print(df.shape)
+
+df = df[
+    (df['pickup_latitude'].between(40.5, 41.0)) &
+    (df['dropoff_latitude'].between(40.5, 41.0)) &
+    (df['pickup_longitude'].between(-74.3, -73.5)) &
+    (df['dropoff_longitude'].between(-74.3, -73.5))
+]
+print("Geographical filtering completed")
+print(df.shape)
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    lat1 = radians(lat1)
+    lon1 = radians(lon1)
+    lat2 = radians(lat2)
+    lon2 = radians(lon2)
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
+
+df['distance_km'] = df.apply(
+    lambda row: haversine(
+        row['pickup_latitude'],
+        row['pickup_longitude'],
+        row['dropoff_latitude'],
+        row['dropoff_longitude']
+    ),
+    axis=1
+)
+print(df[['distance_km']].head())
+
+
+df = df.drop(columns=['pickup_datetime'])
+df = df[
+    (df['fare_amount'] > 0) &
+    (df['passenger_count'].between(1, 6)) &
+    (df['distance_km'] > 0)
+]
+print(df.shape)
+
+plt.figure(figsize=(8, 5))
+sns.boxplot(x=df['fare_amount'])
+plt.title("Boxplot of Uber Fare Amount")
+plt.xlabel("Fare Amount")
+plt.show()
+
+
+Q1 = df['fare_amount'].quantile(0.25)
+Q3 = df['fare_amount'].quantile(0.75)
+IQR = Q3 - Q1
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+print("Lower Bound:", lower_bound)
+print("Upper Bound:", upper_bound)
+
+
+outliers = df[
+    (df['fare_amount'] < lower_bound) |
+    (df['fare_amount'] > upper_bound)
+]
+print("Number of outliers:", len(outliers))
+
+
+
+df = df[
+    (df['fare_amount'] >= lower_bound) &
+    (df['fare_amount'] <= upper_bound)
+]
+print("Outliers removed")
+print(df.shape)
+
+correlation = df.corr(numeric_only=True)
+print(correlation)
+
+
+plt.figure(figsize=(10, 7))
+sns.heatmap(
+    correlation,
+    annot=True,
+    cmap='coolwarm',
+    fmt='.2f'
+)
+plt.title("Correlation Heatmap")
+plt.show()
+
+
+X = df.drop('fare_amount', axis=1)
+y = df['fare_amount']
+
+print(X.dtypes)
+
+
+X = pd.get_dummies(X, drop_first=True)
+X = X.astype(float)
+
+print(X.dtypes)
+
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+print("Training data:", X_train.shape)
+print("Testing data:", X_test.shape)
+
+lr = LinearRegression()
+
+lr.fit(X_train, y_train)
+
+y_pred_lr = lr.predict(X_test)
+print("Linear Regression completed!")
+
+
+lr_r2 = r2_score(y_test, y_pred_lr)
+lr_rmse = np.sqrt(mean_squared_error(y_test, y_pred_lr))
+lr_mae = mean_absolute_error(y_test, y_pred_lr)
+print("Linear Regression Results")
+print("R2 Score:", lr_r2)
+print("RMSE:", lr_rmse)
+print("MAE:", lr_mae)
+
+
+rf = RandomForestRegressor(
+    n_estimators=100,
+    random_state=42,
+    n_jobs=-1
+)
+
+
+rf.fit(X_train, y_train)
+
+
+y_pred_rf = rf.predict(X_test)
+print("Random Forest Regression completed!")
+
+
+rf_r2 = r2_score(y_test, y_pred_rf)
+rf_rmse = np.sqrt(mean_squared_error(y_test, y_pred_rf))
+rf_mae = mean_absolute_error(y_test, y_pred_rf)
+print("Random Forest Regression Results")
+print("R2 Score:", rf_r2)
+print("RMSE:", rf_rmse)
+print("MAE:", rf_mae)
+
+
+results = pd.DataFrame({
+    'Algorithm': ['Linear Regression', 'Random Forest'],
+    'R2 Score': [lr_r2, rf_r2],
+    'RMSE': [lr_rmse, rf_rmse],
+    'MAE': [lr_mae, rf_mae]
+})
+print(results)
+plt.figure(figsize=(8, 5))
+plt.bar(
+    results['Algorithm'],
+    results['R2 Score']
+)
+plt.title("Comparison of Regression Models")
+plt.xlabel("Algorithms")
+plt.ylabel("R2 Score")
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

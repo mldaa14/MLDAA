@@ -43,4 +43,4 @@ contract StudentData {
 
     receive() external payable {
     }
-}t
+}
